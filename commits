@@ -1,0 +1,455 @@
+@Column(name = "EVENT_ID")
+Long eventId;
+
+@Column(name = "AREA_ID")
+String areaId;
+
+@Column(name = "TRAN_NUM")
+String tranNum;
+
+@Column(name = "TRAN_SUFF")
+Long tranSuff;
+
+@Column(name = "TRAN_DT")
+Date tranDt;
+
+@Column(name = "ASOF_DT")
+Date asofDt;
+
+@Column(name = "STATUS_FLG")
+String statusFlg;
+
+@Column(name = "CLASS_FLG")
+String classFlg;
+
+@Column(name = "BUSINESS_LNE")
+String businessLine;
+
+@Column(name = "ALLOC_FLG")
+String allocFlg;
+
+@Column(name = "SEC_TYPE")
+String secType;
+
+@Column(name = "SEC_NUM")
+Long secNum;
+
+@Column(name = "ACCT_NUM")
+Long acctNum;
+
+@Column(name = "ACCT_NM")
+String acctName;
+
+@Column(name = "BROKER_NUM")
+Long brokerNum;
+
+@Column(name = "BROKER_NM")
+String brokerName;
+
+@Column(name = "FINDER_NUM")
+Long finderNum;
+
+@Column(name = "FINDER_NM")
+String finderName;
+
+@Column(name = "ORIGINATOR_NUM")
+String originatorNum;
+
+@Column(name = "ORIGINATOR_NM")
+String originatorName;
+
+@Column(name = "CLEAR_AGENT_NUM")
+String clearAgentNum;
+
+@Column(name = "CLEAR_AGT_NM")
+String clearAgentName;
+
+@Column(name = "CUSIP_NUM")
+String cusipNum;
+
+@Column(name = "SYMBL")
+String symbol;
+
+@Column(name = "QTY")
+Long quantity;
+
+@Column(name = "PRICE")
+Double price;
+
+@Column(name = "AMT")
+Double amount;
+
+@Column(name = "SEC_LOC_TYPE")
+String secLocType;
+
+@Column(name = "REB_PREM_SRC")
+String rebPremSource;
+
+@Column(name = "REB_PREM_TYPE_FLG")
+String rebPremTypeFlag;
+
+@Column(name = "REB_PREM_RT")
+Double rebPremRate;
+
+@Column(name = "COMMISSION_SRC")
+String commissionSource;
+
+@Column(name = "COMMISSION_RT")
+Double commissionRate;
+
+@Column(name = "MARKET_RATE_SRC")
+String marketRateSource;
+
+@Column(name = "MARKET_RT")
+Double marketRate;
+
+@Column(name = "EXCH_RATE_SRC")
+String exchangeRateSource;
+
+@Column(name = "EXCH_RT")
+Double exchangeRate;
+
+@Column(name = "COLL_LOAN_NUM")
+String collateralLoanNumber;
+
+@Column(name = "SETTLEMENT_CD")
+String settlementCode;
+
+@Column(name = "COLLATERAL_CD")
+String collateralCode;
+
+@Column(name = "OVERRIDE_CD")
+String overrideCode;
+
+@Column(name = "INVEST_INDEX_SRC")
+String investmentIndexSource;
+
+@Column(name = "TERM_DT")
+Date termDate;
+
+@Column(name = "TERM_LOAN_IND")
+String termLoanIndicator;
+
+@Column(name = "RAL_SETTL_FLG")
+String ralSettlementFlag;
+
+@Column(name = "ACCT_BILLING_FLG")
+String accountBillingFlag;
+
+@Column(name = "BROKER_BILLING_FLG")
+String brokerBillingFlag;
+
+@Column(name = "FIND_BILLING_FLG")
+String finderBillingFlag;
+
+@Column(name = "NUMBER_ALCTN")
+Long numberAllocation;
+
+@Column(name = "MANUAL_ALLOC_FLG")
+String manualAllocationFlag;
+
+@Column(name = "PRIN_TRADE_FLG")
+String principalTradeFlag;
+
+@Column(name = "ACCT_TYPE")
+String accountType;
+
+@Column(name = "RESERVED_FLG")
+String reservedFlag;
+
+@Column(name = "FINANCE_FLG")
+String financeFlag;
+
+@Column(name = "INVEST_INDEX_CD")
+String investmentIndexCode;
+
+@Column(name = "CALLABLE_FLG")
+String callableFlag;
+
+@Column(name = "TERM_ROLL_DT")
+Date termRollDate;
+
+@Column(name = "ORIG_RESET_DT")
+Date originalResetDate;
+
+@Column(name = "RATE_STRUC_DESC")
+String rateStructureDescription;
+
+@Column(name = "RATE_RESET_PERD")
+String rateResetPeriod;
+
+@Column(name = "RATE_RESET_DT")
+Date rateResetDate;
+
+@Column(name = "ROS_ID")
+String rosId;
+
+@Column(name = "LOT_ID")
+String lotId;
+
+@Column(name = "TRADE_DT")
+Date tradeDate;
+
+@Column(name = "ALL_IN_RT")
+Double allInRate;
+
+@Column(name = "KAG_FUND_NUM")
+String kagFundNumber;
+
+@Column(name = "CASH_FLG")
+String cashFlag;
+
+@Column(name = "REDNDM_FLG")
+String redemptionFlag;
+
+@Column(name = "COLL_LVL")
+Long collateralLevel;
+
+@Column(name = "TPL_CUSTODIAN_CD")
+String tplCustodianCode;
+
+@Column(name = "BILLING_CD")
+String billingCode;
+
+@Column(name = "CASH_WASH_AMT")
+Double cashWashAmount;
+
+@Column(name = "DELIVERY_AMT")
+Double deliveryAmount;
+
+@Column(name = "REMARKS")
+String remarks;
+
+@Column(name = "TICKET_PRINT_FLG")
+String ticketPrintFlag;
+
+@Column(name = "CLOSE_DT")
+Date closeDate;
+
+@Column(name = "REBATE_PREM_CHG_DT")
+Date rebatePremiumChangeDate;
+
+@Column(name = "COMMISSION_CHG_DT")
+Date commissionChangeDate;
+
+@Column(name = "LAST_ACT_PROC_DT")
+Date lastActivityProcessDate;
+
+@Column(name = "LAST_ACT_ASOF_DT")
+Date lastActivityAsOfDate;
+
+@Column(name = "LAST_ACT_NUM")
+Long lastActivityNumber;
+
+@Column(name = "LAST_ACT_TOE_TYPE")
+String lastActivityToeType;
+
+@Column(name = "MARK_AMT")
+Double markAmount;
+
+@Column(name = "MARK_PRICE")
+Double markPrice;
+
+@Column(name = "MARK_PCT")
+Double markPercentage;
+
+@Column(name = "MARK_VALUE")
+Double markValue;
+
+@Column(name = "MARK_FLG")
+String markFlag;
+
+@Column(name = "REB_ACC_AMT")
+Double rebateAccrualAmount;
+
+@Column(name = "COMMISSION_ACC_AMT")
+Double commissionAccrualAmount;
+
+@Column(name = "LC_FLG")
+String lcFlag;
+
+@Column(name = "REALLOC_RSL_FLG")
+String reallocReslFlag;
+
+@Column(name = "SETTLED_FLG")
+String settledFlag;
+
+@Column(name = "EQUILEND_LOAN_FLG")
+String equilendLoanFlag;
+
+@Column(name = "LOAN_TYPE")
+String loanType;
+
+@Column(name = "PARENT_TRAN_NUM")
+String parentTransactionNumber;
+
+@Column(name = "PARENT_TRAN_SUFF")
+String parentTransactionSuffix;
+
+@Column(name = "PARENT_ASOF_DT")
+Date parentAsOfDate;
+
+@Column(name = "PARENT_UTI_NUM")
+String parentUtiNumber;
+
+@Column(name = "ORIG_TRAN_NUM")
+Long originalTransactionNumber;
+
+@Column(name = "ORIG_TRAN_SUFF")
+String originalTransactionSuffix;
+
+@Column(name = "ORIG_ASOF_DT")
+Date originalAsOfDate;
+
+@Column(name = "ORIG_UTI_NUM")
+String originalUtiNumber;
+
+@Column(name = "DVP_FLG")
+String dvpFlag;
+
+@Column(name = "SPECIAL_FLG")
+String specialFlag;
+
+@Column(name = "TRANSMIT_FLG")
+String transmitFlag;
+
+@Column(name = "DELIVERY_BRKR_NUM")
+String deliveryBrokerNumber;
+
+@Column(name = "SETTL_DT")
+Date settlementDate;
+
+@Column(name = "SETTL_REB_PREM_RT")
+Double settlementRebatePremiumRate;
+
+@Column(name = "RECLAIM_RT")
+Double reclaimRate;
+
+@Column(name = "EXPECT_RTN_DT")
+Date expectedReturnDate;
+
+@Column(name = "INSTRUCT_FLG")
+String instructFlag;
+
+@Column(name = "CURR_UTI_NUM")
+String currUtiNumber;
+
+@Column(name = "EVENT_TS")
+String eventTimestamp;
+
+@Column(name = "EXECUTION_TS")
+String executionTimestamp;
+
+@Column(name = "RAL_FROM_SUFF")
+String ralFromSuffix;
+
+@Column(name = "LOAN_SRC_TOE")
+String loanSourceToe;
+
+@Column(name = "ACTL_SETTL_DT")
+Date actualSettlementDate;
+
+@Column(name = "EQL_TRADE_ID")
+String eqlTradeId;
+
+@Column(name = "MIC_CD")
+String micCode;
+
+@Column(name = "CORRECTION_IND")
+String correctionIndicator;
+
+@Column(name = "ORIG_OPER_ID")
+String originalOperatorId;
+
+@Column(name = "ORIG_EXEC_TS")
+Timestamp originalExecutionTimestamp;
+
+@Column(name = "SM_INT_RT")
+Double smInterestRate;
+
+@Column(name = "SM_MAT_DT")
+Date smMaturityDate;
+
+@Column(name = "SM_PRICE")
+Double smPrice;
+
+@Column(name = "PROCESS_SW")
+String processSwitch;
+
+@Column(name = "ADJ_TO_CREDIT")
+Double adjustmentToCredit;
+
+@Column(name = "TERM_TYPE")
+String termType;
+
+@Column(name = "TERM_IND")
+String termIndicator;
+
+@Column(name = "TERM_VALUE")
+Double termValue;
+
+@Column(name = "LOAN_MSG_KEY")
+String loanMessageKey;
+
+@Column(name = "INSTRUCT_NUM")
+String instructNumber;
+
+@Column(name = "LOAN_SEND_TO_ESI_FLG")
+String loanSendToEsiFlag;
+
+@Column(name = "REBT_PREM_AMT_PAID")
+Double rebatePremiumAmountPaid;
+
+@Column(name = "PAYMT_DT")
+Date paymentDate;
+
+@Column(name = "LH_TOE")
+String lhToe;
+
+@Column(name = "LH_ACT_QTY")
+Double lhActualQuantity;
+
+@Column(name = "LH_ACT_AMT")
+Double lhActualAmount;
+
+@Column(name = "LH_ACT_TRAN_DT")
+Date lhActualTransactionDate;
+
+@Column(name = "LH_ACT_ASOF_DT")
+Date lhActualAsOfDate;
+
+@Column(name = "LH_RID")
+String lhRid;
+
+@Column(name = "LH_LAST_UPDATED_TS")
+String lhLastUpdatedTimestamp;
+
+@Column(name = "ISO_SETL_CURR")
+String isoSettlementCurrency;
+
+@Column(name = "ISO_COLL_CURR")
+String isoCollateralCurrency;
+
+@Column(name = "FILL")
+String fill;
+
+@Column(name = "LAST_BYTE")
+String lastByte;
+
+@Column(name = "STATUS")
+String status;
+
+@Column(name = "STATUS_DESC")
+String statusDescription;
+
+@Column(name = "CREATEDATETIME")
+Timestamp createDateTime;
+
+@Column(name = "LASTMODSIGNON")
+String lastModifiedSignOn;
+
+@Column(name = "LASTMODDATETIME")
+Timestamp lastModifiedDateTime;
+
+
+
