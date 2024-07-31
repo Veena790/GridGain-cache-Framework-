@@ -1,1 +1,31 @@
-.
+-- Insert data into loanOmni if tranSuff is null
+INSERT INTO loan_omni (loan_key, loan_id)
+SELECT loan_msg_key, tran_num
+FROM loan_v2_sod_position
+WHERE tran_suff IS NULL;
+
+-- Insert data into loanLot if tranSuff is not null
+INSERT INTO loan_lot (alloc_seq_no, contract_price, fund, settled_amt, settled_qty, loan_key, reclaim_rt)
+SELECT tran_suff, price, acct_num, delivery_amount, quantity, loan_msg_key, reclaim_rate
+FROM loan_v2_sod_position
+WHERE tran_suff IS NOT NULL;
+
+-- Aggregate share_qty and share_amount for multiple records with the same fund name and insert into loanFund
+WITH FundAggregates AS (
+    SELECT acct_num AS fund, 
+           SUM(delivery_amount) AS total_settled_amt, 
+           SUM(quantity) AS total_settled_qty
+    FROM loan_v2_sod_position
+    WHERE tran_suff IS NOT NULL
+    GROUP BY acct_num
+    HAVING COUNT(*) > 1
+)
+INSERT INTO loan_fund (fund, settled_amt, settled_qty, loan_key, reclaim_rt)
+SELECT fa.fund, 
+       fa.total_settled_amt, 
+       fa.total_settled_qty,
+       lvsp.loan_msg_key,
+       lvsp.reclaim_rate
+FROM FundAggregates fa
+JOIN loan_v2_sod_position lvsp ON fa.fund = lvsp.acct_num
+WHERE lvsp.tran_suff IS NOT NULL;
