@@ -1,1 +1,373 @@
-.
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+@Repository
+public interface BrokerOpAccountRepository extends JpaRepository<BrokerOpAccount, Long> {
+
+    @Query(value = "SELECT DISTINCT BROPCT.ACCT_NUMBER " +
+                   "FROM IAL_OIREPP_BR_OP_ACCT BROPCT " +
+                   "INNER JOIN IAL_OIREPP_AL_BORROWER B ON TRIM(B.EPP_ACCT_HOLDER_ID) = TRIM(BROPCT.EPP_ACCT_HOLDER_ID) " +
+                   "AND B.STATUS = 'Active' AND BROPCT.STATUS = 'Active' " +
+                   "INNER JOIN IAL_OIREPP_ACCOUNT_HOLDER AH ON TRIM(AH.EPP_ACCT_HOLDER_ID) = TRIM(B.EPP_ACCT_HOLDER_ID) " +
+                   "AND AH.STATUS = 'Active' " +
+                   "INNER JOIN IAL_OIREPP_LEGAL_ENTITY ELE ON ELE.EPP_LEGALENTITY_ID = AH.EPP_LE_ID " +
+                   "ORDER BY BROPCT.ACCT_NUMBER", 
+                   nativeQuery = true)
+    List<String> findAllBrokerOpAccounts();
+
+
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+@Repository
+public interface LegalEntityRepository extends JpaRepository<LegalEntity, Long> {
+
+    @Query(value = "SELECT DISTINCT ELE.EPP_LEGALENTITY_ID " +
+                   "FROM IAL_OIREPP_BR_OP_ACCT BROPCT " +
+                   "INNER JOIN IAL_OIREPP_AL_BORROWER B ON TRIM(B.EPP_ACCT_HOLDER_ID) = TRIM(BROPCT.EPP_ACCT_HOLDER_ID) " +
+                   "AND B.STATUS = 'Active' AND BROPCT.STATUS = 'Active' " +
+                   "INNER JOIN IAL_OIREPP_ACCOUNT_HOLDER AH ON TRIM(AH.EPP_ACCT_HOLDER_ID) = TRIM(B.EPP_ACCT_HOLDER_ID) " +
+                   "AND AH.STATUS = 'Active' " +
+                   "INNER JOIN IAL_OIREPP_LEGAL_ENTITY ELE ON ELE.EPP_LEGALENTITY_ID = AH.EPP_LE_ID " +
+                   "WHERE BROPCT.ACCT_NUMBER = :eppBrokerOPAccount " +
+                   "ORDER BY ELE.EPP_LEGALENTITY_ID", 
+                   nativeQuery = true)
+    List<String> findLegalEntityIDsByBrokerOpAccount(@Param("eppBrokerOPAccount") String eppBrokerOPAccount);
+}
+
+
+
+
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+@Repository
+public interface JurisdictionRepository extends JpaRepository<Jurisdiction, Long> {
+
+    @Query(value = "SELECT DISTINCT AH.JURISDICTION_ID " +
+                   "FROM IAL_OIREPP_BR_OP_ACCT BROPCT " +
+                   "INNER JOIN IAL_OIREPP_AL_BORROWER B ON TRIM(B.EPP_ACCT_HOLDER_ID) = TRIM(BROPCT.EPP_ACCT_HOLDER_ID) " +
+                   "AND B.STATUS = 'Active' AND BROPCT.STATUS = 'Active' " +
+                   "INNER JOIN IAL_OIREPP_ACCOUNT_HOLDER AH ON TRIM(AH.EPP_ACCT_HOLDER_ID) = TRIM(B.EPP_ACCT_HOLDER_ID) " +
+                   "AND AH.STATUS = 'Active' " +
+                   "INNER JOIN IAL_OIREPP_LEGAL_ENTITY ELE ON ELE.EPP_LEGALENTITY_ID = AH.EPP_LE_ID " +
+                   "WHERE BROPCT.ACCT_NUMBER = :eppBrokerOPAccount " +
+                   "AND ELE.EPP_LEGALENTITY_ID = :eppLegalEntityID " +
+                   "ORDER BY AH.JURISDICTION_ID", 
+                   nativeQuery = true)
+    List<String> findJurisdictionIDsByBrokerOpAccountAndLegalEntityID(@Param("eppBrokerOPAccount") String eppBrokerOPAccount, 
+                                                                      @Param("eppLegalEntityID") String eppLegalEntityID);
+}
+
+
+
+____________________________
+
+To write test cases for the service implementation code and the controller service calls, we'll use JUnit 5 and Mockito. Below is an example of how you can write these test cases.
+
+### 1. **Test Cases for Service Implementation**
+
+#### **Test Class Setup:**
+
+```java
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+import java.util.Arrays;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+public class EPPServiceTest {
+
+    @InjectMocks
+    private EPPServiceImpl eppService;  // Assuming the service implementation is named EPPServiceImpl
+
+    @Mock
+    private BrokerOpAccountRepository brokerOpAccountRepository;
+
+    @Mock
+    private LegalEntityRepository legalEntityRepository;
+
+    @Mock
+    private JurisdictionRepository jurisdictionRepository;
+
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    // Test cases go here
+}
+```
+
+#### **Test Case: `getAllBrokerOpAccounts()`**
+
+```java
+@Test
+public void testGetAllBrokerOpAccounts_Success() {
+    // Mock the repository call
+    when(brokerOpAccountRepository.findAllBrokerOpAccounts()).thenReturn(Arrays.asList("Account1", "Account2"));
+
+    // Call the service method
+    List<String> result = eppService.getAllBrokerOpAccounts();
+
+    // Verify the result
+    assertNotNull(result);
+    assertEquals(2, result.size());
+    assertEquals("Account1", result.get(0));
+}
+
+@Test
+public void testGetAllBrokerOpAccounts_NoDataFound() {
+    when(brokerOpAccountRepository.findAllBrokerOpAccounts()).thenReturn(null);
+
+    // Verify the exception
+    assertThrows(RuntimeException.class, () -> eppService.getAllBrokerOpAccounts());
+}
+```
+
+#### **Test Case: `getLegalEntityIDsByBrokerOpAccount(String eppBrokerOPAccount)`**
+
+```java
+@Test
+public void testGetLegalEntityIDsByBrokerOpAccount_Success() {
+    String brokerOpAccount = "Account1";
+    
+    // Mock the repository call
+    when(legalEntityRepository.findLegalEntityIDsByBrokerOpAccount(brokerOpAccount))
+        .thenReturn(Arrays.asList("Entity1", "Entity2"));
+
+    // Call the service method
+    List<String> result = eppService.getLegalEntityIDsByBrokerOpAccount(brokerOpAccount);
+
+    // Verify the result
+    assertNotNull(result);
+    assertEquals(2, result.size());
+    assertEquals("Entity1", result.get(0));
+}
+
+@Test
+public void testGetLegalEntityIDsByBrokerOpAccount_IllegalArgumentException() {
+    assertThrows(IllegalArgumentException.class, () -> eppService.getLegalEntityIDsByBrokerOpAccount(null));
+}
+
+@Test
+public void testGetLegalEntityIDsByBrokerOpAccount_NoDataFound() {
+    String brokerOpAccount = "Account1";
+    
+    when(legalEntityRepository.findLegalEntityIDsByBrokerOpAccount(brokerOpAccount)).thenReturn(null);
+
+    assertThrows(RuntimeException.class, () -> eppService.getLegalEntityIDsByBrokerOpAccount(brokerOpAccount));
+}
+```
+
+#### **Test Case: `getJurisdictionIDsByBrokerOpAccountAndLegalEntityID(String eppBrokerOPAccount, String eppLegalEntityID)`**
+
+```java
+@Test
+public void testGetJurisdictionIDsByBrokerOpAccountAndLegalEntityID_Success() {
+    String brokerOpAccount = "Account1";
+    String legalEntityID = "Entity1";
+    
+    // Mock the repository call
+    when(jurisdictionRepository.findJurisdictionIDsByBrokerOpAccountAndLegalEntityID(brokerOpAccount, legalEntityID))
+        .thenReturn(Arrays.asList("Jurisdiction1", "Jurisdiction2"));
+
+    // Call the service method
+    List<String> result = eppService.getJurisdictionIDsByBrokerOpAccountAndLegalEntityID(brokerOpAccount, legalEntityID);
+
+    // Verify the result
+    assertNotNull(result);
+    assertEquals(2, result.size());
+    assertEquals("Jurisdiction1", result.get(0));
+}
+
+@Test
+public void testGetJurisdictionIDsByBrokerOpAccountAndLegalEntityID_IllegalArgumentException() {
+    assertThrows(IllegalArgumentException.class, () -> eppService.getJurisdictionIDsByBrokerOpAccountAndLegalEntityID(null, "Entity1"));
+    assertThrows(IllegalArgumentException.class, () -> eppService.getJurisdictionIDsByBrokerOpAccountAndLegalEntityID("Account1", null));
+}
+
+@Test
+public void testGetJurisdictionIDsByBrokerOpAccountAndLegalEntityID_NoDataFound() {
+    String brokerOpAccount = "Account1";
+    String legalEntityID = "Entity1";
+    
+    when(jurisdictionRepository.findJurisdictionIDsByBrokerOpAccountAndLegalEntityID(brokerOpAccount, legalEntityID)).thenReturn(null);
+
+    assertThrows(RuntimeException.class, () -> eppService.getJurisdictionIDsByBrokerOpAccountAndLegalEntityID(brokerOpAccount, legalEntityID));
+}
+```
+
+### 2. **Test Cases for Controller Service Calls**
+
+#### **Test Class Setup:**
+
+```java
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import java.util.Arrays;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+@WebMvcTest(EPPServiceController.class)
+public class EPPServiceControllerTest {
+
+    private MockMvc mockMvc;
+
+    @InjectMocks
+    private EPPServiceController eppServiceController;
+
+    @Mock
+    private EPPService eppService;
+
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+        mockMvc = MockMvcBuilders.standaloneSetup(eppServiceController).build();
+    }
+
+    // Test cases go here
+}
+```
+
+#### **Test Case: `getEPPBrokerOPAccounts()`**
+
+```java
+@Test
+public void testGetEPPBrokerOPAccounts_Success() throws Exception {
+    when(eppService.getAllBrokerOpAccounts()).thenReturn(Arrays.asList("Account1", "Account2"));
+
+    mockMvc.perform(get("/getEPPBrokerOPAccounts"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0]").value("Account1"))
+            .andExpect(jsonPath("$[1]").value("Account2"));
+}
+
+@Test
+public void testGetEPPBrokerOPAccounts_NoDataFound() throws Exception {
+    when(eppService.getAllBrokerOpAccounts()).thenReturn(null);
+
+    mockMvc.perform(get("/getEPPBrokerOPAccounts"))
+            .andExpect(status().isInternalServerError());
+}
+```
+
+#### **Test Case: `getEPPLegalEntityIDs(String eppBrokerOPAccount)`**
+
+```java
+@Test
+public void testGetEPPLegalEntityIDs_Success() throws Exception {
+    when(eppService.getLegalEntityIDsByBrokerOpAccount("Account1")).thenReturn(Arrays.asList("Entity1", "Entity2"));
+
+    mockMvc.perform(get("/getEPPLegalEntityIDs").param("eppBrokerOPAccount", "Account1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0]").value("Entity1"))
+            .andExpect(jsonPath("$[1]").value("Entity2"));
+}
+
+@Test
+public void testGetEPPLegalEntityIDs_IllegalArgumentException() throws Exception {
+    mockMvc.perform(get("/getEPPLegalEntityIDs").param("eppBrokerOPAccount", ""))
+            .andExpect(status().isBadRequest());
+}
+
+@Test
+public void testGetEPPLegalEntityIDs_NoDataFound() throws Exception {
+    when(eppService.getLegalEntityIDsByBrokerOpAccount("Account1")).thenReturn(null);
+
+    mockMvc.perform(get("/getEPPLegalEntityIDs").param("eppBrokerOPAccount", "Account1"))
+            .andExpect(status().isInternalServerError());
+}
+```
+
+#### **Test Case: `getEPPJurisdicitonIDs(String eppBrokerOPAccount, String eppLegalEntityID)`**
+
+```java
+@Test
+public void testGetEPPJurisdicitonIDs_Success() throws Exception {
+    when(eppService.getJurisdictionIDsByBrokerOpAccountAndLegalEntityID("Account1", "Entity1"))
+        .thenReturn(Arrays.asList("Jurisdiction1", "Jurisdiction2"));
+
+    mockMvc.perform(get("/getEPPJurisdicitonIDs")
+                    .param("eppBrokerOPAccount", "Account1")
+                    .param("eppLegalEntityID", "Entity1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0]").value("Jurisdiction1"))
+            .andExpect(jsonPath("$[1]").value("Jurisdiction2"));
+}
+
+@Test
+public void testGetEPPJurisdicitonIDs_IllegalArgumentException() throws Exception {
+    mockMvc.perform(get("/getEPPJurisdicitonIDs")
+                    .param("eppBrokerOPAccount", "")
+                    .param("eppLegalEntityID", "Entity1"))
+            .andExpect(status().isBadRequest());
+
+    mockMvc.perform(get("/getEPPJurisdicitonIDs")
+                    .param("eppBrokerOPAccount", "Account1")
+                    .param("eppLegalEntityID", ""))
+            .andExpect(status().isBadRequest
+
+
+Certainly! Here is the continuation of the test cases for `getEPPJurisdicitonIDs`:
+
+### **Test Case: `getEPPJurisdicitonIDs(String eppBrokerOPAccount, String eppLegalEntityID)` (continued)**
+
+```java
+@Test
+public void testGetEPPJurisdicitonIDs_NoDataFound() throws Exception {
+    when(eppService.getJurisdictionIDsByBrokerOpAccountAndLegalEntityID("Account1", "Entity1"))
+        .thenReturn(null);
+
+    mockMvc.perform(get("/getEPPJurisdicitonIDs")
+                    .param("eppBrokerOPAccount", "Account1")
+                    .param("eppLegalEntityID", "Entity1"))
+            .andExpect(status().isInternalServerError());
+}
+```
+
+### **Summary of the Test Cases:**
+
+1. **Service Layer Test Cases**:
+   - `getAllBrokerOpAccounts()`: Validates retrieval of broker OP accounts and handles cases where no data is found.
+   - `getLegalEntityIDsByBrokerOpAccount(String eppBrokerOPAccount)`: Validates retrieval of legal entity IDs based on broker OP account, checks for null/empty input, and handles cases where no data is found.
+   - `getJurisdictionIDsByBrokerOpAccountAndLegalEntityID(String eppBrokerOPAccount, String eppLegalEntityID)`: Validates retrieval of jurisdiction IDs based on broker OP account and legal entity ID, checks for null/empty input, and handles cases where no data is found.
+
+2. **Controller Layer Test Cases**:
+   - `getEPPBrokerOPAccounts()`: Verifies the API endpoint to retrieve broker OP accounts, checks status codes, and validates response structure.
+   - `getEPPLegalEntityIDs(String eppBrokerOPAccount)`: Verifies the API endpoint to retrieve legal entity IDs based on broker OP account, checks for input validation, and validates response structure.
+   - `getEPPJurisdicitonIDs(String eppBrokerOPAccount, String eppLegalEntityID)`: Verifies the API endpoint to retrieve jurisdiction IDs based on broker OP account and legal entity ID, checks for input validation, and validates response structure.
+
+### **Next Steps:**
+
+- **Run Tests:** Once the test cases are written, run them to ensure they all pass.
+- **Refine Code:** If any test fails, identify the cause, and refine your service or controller code.
+- **Mock Repositories:** Ensure that the mock objects for repositories are properly set up to simulate database interactions during testing.
+  
+These tests will help ensure that both your service and controller layers function correctly and handle various scenarios gracefully.
+
+
