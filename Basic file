@@ -1,1 +1,53 @@
-.
+package com.example.loanapi.controller;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.security.SecureRandom;
+
+@RestController
+@RequestMapping("/api/loan")
+public class LoanController {
+
+    private static final String ALPHA_NUMERIC_STRING = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final int LOAN_ID_LENGTH = 6;
+    private final SecureRandom random = new SecureRandom();
+
+    // Endpoint to generate a new 6-digit alphanumeric loan_id
+    @GetMapping("/generate")
+    public LoanIdResponse generateLoanId() {
+        // Generate a random alphanumeric loan_id with 6 characters
+        String loanId = generateRandomAlphaNumeric(LOAN_ID_LENGTH);
+        
+        // Return response with the loan_id
+        return new LoanIdResponse(loanId);
+    }
+
+    // Method to generate a random alphanumeric string of the given length
+    private String generateRandomAlphaNumeric(int length) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            int characterIndex = random.nextInt(ALPHA_NUMERIC_STRING.length());
+            builder.append(ALPHA_NUMERIC_STRING.charAt(characterIndex));
+        }
+        return builder.toString();
+    }
+
+    // Response object to encapsulate loan_id
+    public static class LoanIdResponse {
+        private String loanId;
+
+        public LoanIdResponse(String loanId) {
+            this.loanId = loanId;
+        }
+
+        public String getLoanId() {
+            return loanId;
+        }
+
+        public void setLoanId(String loanId) {
+            this.loanId = loanId;
+        }
+    }
+}
