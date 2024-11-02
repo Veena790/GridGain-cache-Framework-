@@ -1,1 +1,247 @@
-.
+Got it! I'll walk you through the entire process step by step, starting from setting up a Spring Boot project, creating the necessary components, and running the application.
+
+Step-by-Step Guide to Implement Sequential Loan ID Generation and Store It in a Database:
+
+1. Set Up a Spring Boot Project
+
+If you haven't already set up a Spring Boot project, you can create one from scratch.
+
+Option 1: Use Spring Initializr:
+
+Choose Maven Project.
+
+Choose Java.
+
+Spring Boot version: Select the latest stable version.
+
+Add dependencies:
+
+Spring Web (to create REST APIs).
+
+Spring Data JPA (to work with databases).
+
+H2 (an in-memory database for testing).
+
+
+Click Generate to download the project.
+
+Extract the ZIP file and open it in your favorite IDE (e.g., IntelliJ, Eclipse).
+
+
+
+2. Add Database Configuration (application.properties)
+
+You’ll need to tell Spring Boot about the database you're using. For this example, we’ll use an in-memory H2 database for simplicity. Open the src/main/resources/application.properties file and add the following:
+
+# H2 Database Configuration
+spring.datasource.url=jdbc:h2:mem:testdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=password
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+spring.jpa.hibernate.ddl-auto=update makes sure that the table is automatically created and updated.
+
+spring.jpa.show-sql=true shows the SQL queries in the console.
+
+
+3. Create the Loan Entity
+
+This entity class represents the data that will be stored in the database. Create a new package com.example.loanapi.entity and create a new class named Loan.java inside that package.
+
+package com.example.loanapi.entity;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "loans")
+public class Loan {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;  // Sequential primary key
+
+    private String loanId;
+
+    // Default constructor
+    public Loan() {
+    }
+
+    // Constructor with loanId
+    public Loan(String loanId) {
+        this.loanId = loanId;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getLoanId() {
+        return loanId;
+    }
+
+    public void setLoanId(String loanId) {
+        this.loanId = loanId;
+    }
+}
+
+This defines the loans table with columns for id (auto-incremented) and loanId (our custom alphanumeric ID).
+
+
+4. Create a Loan Repository
+
+Now, we’ll create a repository that interacts with the database. Create a new package com.example.loanapi.repository and create a new interface named LoanRepository.java.
+
+package com.example.loanapi.repository;
+
+import com.example.loanapi.entity.Loan;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface LoanRepository extends JpaRepository<Loan, Long> {
+    // Custom query to find the last loan inserted
+    Optional<Loan> findTopByOrderByIdDesc();
+}
+
+findTopByOrderByIdDesc() will help us get the last inserted loanId, ensuring that the IDs are sequential.
+
+
+5. Create a Loan Controller
+
+This is the REST API endpoint that will generate the loan IDs and store them in the database. Create a new package com.example.loanapi.controller and a class LoanController.java.
+
+package com.example.loanapi.controller;
+
+import com.example.loanapi.entity.Loan;
+import com.example.loanapi.repository.LoanRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api/loan")
+public class LoanController {
+
+    @Autowired
+    private LoanRepository loanRepository;
+
+    // Endpoint to generate a new sequential 6-digit alphanumeric loan_id
+    @GetMapping("/generate")
+    public LoanIdResponse generateLoanId() {
+        // Generate a unique sequential alphanumeric loan_id
+        String loanId = generateSequentialLoanId();
+
+        // Store the loan_id in the database
+        Loan loan = new Loan(loanId);
+        loanRepository.save(loan);
+
+        // Return the loan_id in the response
+        return new LoanIdResponse(loanId);
+    }
+
+    // Generate a sequential loan_id
+    private String generateSequentialLoanId() {
+        // Get the latest loan ID stored in the database
+        Optional<Loan> latestLoan = loanRepository.findTopByOrderByIdDesc();
+        String newLoanId;
+
+        if (latestLoan.isPresent()) {
+            // If there's an existing loan, increment its ID
+            newLoanId = incrementLoanId(latestLoan.get().getLoanId());
+        } else {
+            // If no loans exist, start with the first ID
+            newLoanId = "AAAAA0";
+        }
+
+        return newLoanId;
+    }
+
+    // Method to increment an alphanumeric loan_id
+    private String incrementLoanId(String currentLoanId) {
+        char[] chars = currentLoanId.toCharArray();
+        int index = chars.length - 1;
+
+        while (index >= 0) {
+            char c = chars[index];
+            if (c == '9') {
+                chars[index] = 'A';  // Wrap from '9' to 'A'
+                break;
+            } else if (c == 'Z') {
+                chars[index] = '0';  // Wrap from 'Z' to '0'
+                index--;  // Move to the next character
+            } else {
+                chars[index]++;
+                break;
+            }
+        }
+        return new String(chars);
+    }
+
+    // Response object to encapsulate loan_id
+    public static class LoanIdResponse {
+        private String loanId;
+
+        public LoanIdResponse(String loanId) {
+            this.loanId = loanId;
+        }
+
+        public String getLoanId() {
+            return loanId;
+        }
+
+        public void setLoanId(String loanId) {
+            this.loanId = loanId;
+        }
+    }
+}
+
+6. Run the Application
+
+If you're using an IDE like IntelliJ or Eclipse, simply run the main class (the class with the @SpringBootApplication annotation).
+
+The application should start and create the necessary database schema automatically.
+
+
+7. Test the API
+
+Open a browser or use a tool like Postman to make a GET request to:
+
+http://localhost:8080/api/loan/generate
+
+Each time you call this endpoint, a new sequential loan ID will be generated and stored in the H2 database.
+
+
+8. View the Database (Optional)
+
+Since we are using H2 in-memory database, you can view the data in the H2 console. Add this to your application.properties to enable the console:
+
+# Enable H2 Console
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+
+Go to http://localhost:8080/h2-console to access the H2 console.
+
+Use jdbc:h2:mem:testdb as the JDBC URL to see your table and data.
+
+
+Conclusion:
+
+By following these steps, you’ll have a Spring Boot API that generates sequential, non-repeating alphanumeric loan IDs and stores them in a database.
+
+Let me know if you run into any issues, and I'll help you debug!
+
