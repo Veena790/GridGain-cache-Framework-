@@ -1,0 +1,205 @@
+To implement a scenario where the loan_id is retrieved from the database and automatically incremented if the next sequence is missing, we can leverage the following approach:
+
+1. Setup a Loan Entity and Repository
+
+First, you’ll need a Loan entity that maps to the loans table in your database, where loan_id will be stored. This entity will interact with the database using Spring Data JPA.
+
+2. Implement a Service Layer for Generating Loan IDs
+
+The service will check the latest loan_id in the database and generate the next incremental one if it's missing.
+
+3. Loan ID Generation Logic
+
+The logic will query the latest loan_id, check for gaps or missing sequences, and increment the value if no gaps are found.
+
+
+---
+
+Step-by-Step Java Code Implementation:
+
+1. Loan Entity Class
+
+This class represents the loans table in the database.
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "loans")
+public class Loan {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // Use database auto-increment for primary key
+    private Long id;
+
+    private String loanId;
+
+    // Getters and setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getLoanId() {
+        return loanId;
+    }
+
+    public void setLoanId(String loanId) {
+        this.loanId = loanId;
+    }
+}
+
+
+---
+
+2. LoanRepository Interface
+
+This interface provides basic CRUD operations and the ability to retrieve the latest loan_id.
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface LoanRepository extends JpaRepository<Loan, Long> {
+
+    // Custom query to get the maximum loanId in the database
+    @Query("SELECT MAX(l.loanId) FROM Loan l")
+    String findMaxLoanId();
+}
+
+
+---
+
+3. LoanService Class
+
+This service class handles the logic for generating the next loan_id.
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class LoanService {
+
+    @Autowired
+    private LoanRepository loanRepository;
+
+    @Transactional
+    public String generateNextLoanId() {
+        // Fetch the latest loanId from the database
+        String maxLoanId = loanRepository.findMaxLoanId();
+        String nextLoanId;
+
+        if (maxLoanId == null) {
+            // If no loanId exists, start from a base value (e.g., "A00001")
+            nextLoanId = "A00001";
+        } else {
+            // Increment the loanId
+            nextLoanId = incrementLoanId(maxLoanId);
+        }
+
+        // Save the new loanId to the database
+        Loan newLoan = new Loan();
+        newLoan.setLoanId(nextLoanId);
+        loanRepository.save(newLoan);
+
+        return nextLoanId;
+    }
+
+    // Method to increment alphanumeric loan ID
+    private String incrementLoanId(String loanId) {
+        char prefix = loanId.charAt(0);  // Extract alphabetic prefix
+        int numericPart = Integer.parseInt(loanId.substring(1));  // Extract numeric part
+        
+        numericPart++;  // Increment numeric part
+        
+        // Check if numeric part exceeds 99999, in which case increment the alphabetic part
+        if (numericPart > 99999) {
+            prefix++;  // Increment the alphabetic prefix
+            numericPart = 1;  // Reset numeric part to 1
+        }
+
+        // Format back to alphanumeric with padding
+        return String.format("%c%05d", prefix, numericPart);
+    }
+}
+
+
+---
+
+4. LoanController Class
+
+This class exposes an API to generate the next loan_id.
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class LoanController {
+
+    @Autowired
+    private LoanService loanService;
+
+    @GetMapping("/generate-loan-id")
+    public String generateLoanId() {
+        return loanService.generateNextLoanId();
+    }
+}
+
+
+---
+
+5. Database Table Structure
+
+Make sure your loans table is created in the database. Here's a basic structure:
+
+CREATE TABLE loans (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    loan_id VARCHAR(6) NOT NULL UNIQUE
+);
+
+id: The auto-incrementing primary key.
+
+loan_id: The 6-character alphanumeric loan ID (e.g., A00001, A00002, etc.).
+
+
+
+---
+
+How the Code Works:
+
+1. The LoanService checks the database for the highest loan_id using findMaxLoanId().
+
+
+2. If no loan_id exists, it starts with the base value (A00001).
+
+
+3. The incrementLoanId() method splits the loan_id into an alphabetic prefix and a numeric part. It increments the numeric part and handles rollover to the next letter if necessary.
+
+
+4. The new loan_id is saved in the loans table, ensuring it's unique and sequential.
+
+
+
+Running the Application:
+
+1. Set up your database with the appropriate table.
+
+
+2. Start the Spring Boot application.
+
+
+3. Use the endpoint /generate-loan-id to generate the next loan_id sequentially.
+
+
+
+This setup will ensure that the loan_id is always incremented based on the last stored value and saved into the database without gaps. Let me know if you need further assistance!
+
