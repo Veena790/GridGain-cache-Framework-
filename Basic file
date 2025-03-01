@@ -1,0 +1,332 @@
+CREATE OR REPLACE PROCEDURE PR_LOAD_STG_TO_LOAN_TABS (
+    P_IN_AREA_ID IN VARCHAR2,
+    P_OUT_STS    OUT NUMBER
+) IS
+    -- Global timestamp for consistent act_seq_no generation
+    gv_systimestamp TIMESTAMP := SYSTIMESTAMP;
+
+    -- Function to generate loan_id
+    FUNCTION generate_loan_id RETURN VARCHAR2 IS
+    BEGIN
+        RETURN IAL.PKG_SLB_COMMON.FN_CREATE_LOAN_ID();
+    END generate_loan_id;
+
+BEGIN
+    -- Initialize output status
+    P_OUT_STS := 0;  -- 0 = Success, 1 = Error
+
+    --------------------------------------
+    -- STEP 1: Move Omni Records from Stage to Activity
+    --------------------------------------
+    DECLARE
+        TYPE stage_table IS TABLE OF ial_slb.stg_loan_v2_sod%ROWTYPE;
+        v_stage_data stage_table;
+        v_loan_id    VARCHAR2(50);
+    BEGIN
+        -- Select Omni records from stage (tran_suff IS NULL AND al_op_acct IS NULL)
+        SELECT *
+        BULK COLLECT INTO v_stage_data
+        FROM ial_slb.stg_loan_v2_sod
+        WHERE area_id = P_IN_AREA_ID
+          AND tran_suff IS NULL
+          AND al_op_acct IS NULL;
+
+        -- Generate loan_id for Omni records
+        v_loan_id := generate_loan_id();
+
+        -- Bulk insert into Activity
+        FORALL i IN 1 .. v_stage_data.COUNT
+            INSERT INTO ial_slb.loan_activity (
+                dml_transaction_ref, tran_suff, al_op_acct, amount, act_seq_no, loan_id
+            )
+            VALUES (
+                P_IN_AREA_ID || '-' || v_stage_data(i).tran_suff || '-' || v_stage_data(i).al_op_acct,
+                v_stage_data(i).tran_suff,
+                v_stage_data(i).al_op_acct,
+                v_stage_data(i).amount,
+                NULL,  -- act_seq_no will be updated later
+                v_loan_id  -- Use the same loan_id for all Omni records
+            );
+
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Stage → Activity (Omni) for area_id ' || P_IN_AREA_ID || ': ' || SQL%ROWCOUNT || ' rows inserted.');
+    EXCEPTION
+        WHEN OTHERS THEN
+            P_OUT_STS := 1;  -- Error
+            DBMS_OUTPUT.PUT_LINE('Error in Omni processing: ' || SQLERRM);
+            RAISE;
+    END;
+
+    --------------------------------------
+    -- STEP 2: Move Lot Records from Stage to Activity
+    --------------------------------------
+    DECLARE
+        TYPE stage_table IS TABLE OF ial_slb.stg_loan_v2_sod%ROWTYPE;
+        v_stage_data stage_table;
+    BEGIN
+        -- Select Lot records from stage (tran_suff IS NOT NULL AND al_op_acct IS NOT NULL)
+        SELECT *
+        BULK COLLECT INTO v_stage_data
+        FROM ial_slb.stg_loan_v2_sod
+        WHERE area_id = P_IN_AREA_ID
+          AND tran_suff IS NOT NULL
+          AND al_op_acct IS NOT NULL;
+
+        -- Bulk insert into Activity
+        FORALL i IN 1 .. v_stage_data.COUNT
+            INSERT INTO ial_slb.loan_activity (
+                dml_transaction_ref, tran_suff, al_op_acct, amount, act_seq_no, loan_id
+            )
+            VALUES (
+                P_IN_AREA_ID || '-' || v_stage_data(i).tran_suff || '-' || v_stage_data(i).al_op_acct,
+                v_stage_data(i).tran_suff,
+                v_stage_data(i).al_op_acct,
+                v_stage_data(i).amount,
+                NULL,  -- act_seq_no will be updated later
+                v_loan_id  -- Use the same loan_id for all Lot records
+            );
+
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Stage → Activity (Lot) for area_id ' || P_IN_AREA_ID || ': ' || SQL%ROWCOUNT || ' rows inserted.');
+    EXCEPTION
+        WHEN OTHERS THEN
+            P_OUT_STS := 1;  -- Error
+            DBMS_OUTPUT.PUT_LINE('Error in Lot processing: ' || SQLERRM);
+            RAISE;
+    END;
+
+    --------------------------------------
+    -- STEP 3: Move Fund Records from Stage to Activity
+    --------------------------------------
+    DECLARE
+        TYPE stage_table IS TABLE OF ial_slb.stg_loan_v2_sod%ROWTYPE;
+        v_stage_data stage_table;
+    BEGIN
+        -- Select Fund records from stage (tran_suff IS NULL AND al_op_acct IS NOT NULL)
+        SELECT *
+        BULK COLLECT INTO v_stage_data
+        FROM ial_slb.stg_loan_v2_sod
+        WHERE area_id = P_IN_AREA_ID
+          AND tran_suff IS NULL
+          AND al_op_acct IS NOT NULL;
+
+        -- Bulk insert into Activity
+        FORALL i IN 1 .. v_stage_data.COUNT
+            INSERT INTO ial_slb.loan_activity (
+                dml_transaction_ref, tran_suff, al_op_acct, amount, act_seq_no, loan_id
+            )
+            VALUES (
+                P_IN_AREA_ID || '-' || v_stage_data(i).tran_suff || '-' || v_stage_data(i).al_op_acct,
+                v_stage_data(i).tran_suff,
+                v_stage_data(i).al_op_acct,
+                v_stage_data(i).amount,
+                NULL,  -- act_seq_no will be updated later
+                v_loan_id  -- Use the same loan_id for all Fund records
+            );
+
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Stage → Activity (Fund) for area_id ' || P_IN_AREA_ID || ': ' || SQL%ROWCOUNT || ' rows inserted.');
+    EXCEPTION
+        WHEN OTHERS THEN
+            P_OUT_STS := 1;  -- Error
+            DBMS_OUTPUT.PUT_LINE('Error in Fund processing: ' || SQLERRM);
+            RAISE;
+    END;
+
+    --------------------------------------
+    -- STEP 4: Process Omni Records (Generate act_seq_no)
+    --------------------------------------
+    DECLARE
+        TYPE omni_rec IS RECORD (
+            tran_suff     ial_slb.loan_activity.tran_suff%TYPE,
+            al_op_acct    ial_slb.loan_activity.al_op_acct%TYPE,
+            amount        ial_slb.loan_activity.amount%TYPE,
+            act_seq_no   ial_slb.loan_activity.act_seq_no%TYPE,
+            loan_id       ial_slb.loan_activity.loan_id%TYPE
+        );
+        TYPE omni_table IS TABLE OF omni_rec;
+        v_omni_data omni_table;
+    BEGIN
+        -- Select Omni records from activity table
+        SELECT tran_suff, al_op_acct, amount, act_seq_no, loan_id
+        BULK COLLECT INTO v_omni_data
+        FROM ial_slb.loan_activity
+        WHERE substr(dml_transaction_ref, 1, 2) = P_IN_AREA_ID
+          AND tran_suff IS NULL
+          AND al_op_acct IS NULL
+          AND loan_id = v_loan_id;  -- Use the same loan_id
+
+        -- Generate act_seq_no
+        FOR i IN 1 .. v_omni_data.COUNT LOOP
+            v_omni_data(i).act_seq_no := 
+                v_omni_data(i).loan_id || 
+                TO_CHAR(gv_systimestamp, 'YYYYMMDDHH24MISSFF');
+        END LOOP;
+
+        -- Update Activity with act_seq_no
+        FORALL i IN 1 .. v_omni_data.COUNT
+            UPDATE ial_slb.loan_activity
+            SET 
+                act_seq_no = v_omni_data(i).act_seq_no
+            WHERE substr(dml_transaction_ref, 1, 2) = P_IN_AREA_ID
+              AND tran_suff IS NULL
+              AND al_op_acct IS NULL
+              AND loan_id = v_loan_id;
+
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Activity → Omni for area_id ' || P_IN_AREA_ID || ': ' || SQL%ROWCOUNT || ' rows processed.');
+    EXCEPTION
+        WHEN OTHERS THEN
+            P_OUT_STS := 1;  -- Error
+            DBMS_OUTPUT.PUT_LINE('Error in Omni processing: ' || SQLERRM);
+            RAISE;
+    END;
+
+    --------------------------------------
+    -- STEP 5: Process Lot Records (Generate lot_seq_no and act_seq_no)
+    --------------------------------------
+    DECLARE
+        TYPE lot_rec IS RECORD (
+            loan_id      ial_slb.loan_activity.loan_id%TYPE,
+            tran_suff    ial_slb.loan_activity.tran_suff%TYPE,
+            al_op_acct  ial_slb.loan_activity.al_op_acct%TYPE,
+            amount      ial_slb.loan_activity.amount%TYPE,
+            act_seq_no  ial_slb.loan_activity.act_seq_no%TYPE,
+            lot_seq_no   VARCHAR2(6)  -- 6-digit lot sequence number
+        );
+        TYPE lot_table IS TABLE OF lot_rec;
+        v_lot_data lot_table;
+    BEGIN
+        -- Select Lot records from activity table
+        SELECT a.loan_id, a.tran_suff, a.al_op_acct, a.amount, a.act_seq_no
+        BULK COLLECT INTO v_lot_data
+        FROM ial_slb.loan_activity a
+        WHERE substr(a.dml_transaction_ref, 1, 2) = P_IN_AREA_ID
+          AND tran_suff IS NOT NULL
+          AND al_op_acct IS NOT NULL
+          AND loan_id = v_loan_id;  -- Use the same loan_id
+
+        -- Generate lot_seq_no and act_seq_no
+        FOR i IN 1 .. v_lot_data.COUNT LOOP
+            -- Generate 6-digit lot_seq_no using LPAD(tran_suff, 6, '0')
+            v_lot_data(i).lot_seq_no := LPAD(v_lot_data(i).tran_suff, 6, '0');
+
+            -- act_seq_no = loan_id || systimestamp || al_op_acct || lot_seq_no
+            v_lot_data(i).act_seq_no := 
+                v_lot_data(i).loan_id || 
+                TO_CHAR(gv_systimestamp, 'YYYYMMDDHH24MISSFF') || 
+                v_lot_data(i).al_op_acct || 
+                v_lot_data(i).lot_seq_no;
+
+            -- Update activity table with lot_seq_no and act_seq_no
+            UPDATE ial_slb.loan_activity
+            SET 
+                act_seq_no = v_lot_data(i).act_seq_no,
+                lot_seq_no = v_lot_data(i).lot_seq_no
+            WHERE loan_id = v_lot_data(i).loan_id
+              AND tran_suff = v_lot_data(i).tran_suff
+              AND al_op_acct = v_lot_data(i).al_op_acct;
+        END LOOP;
+
+        -- Insert into Lot
+        FORALL i IN 1 .. v_lot_data.COUNT
+            INSERT INTO ial_slb.loan_lot (
+                loan_id, act_seq_no, tran_suff, al_op_acct, amount, lot_seq_no
+            )
+            VALUES (
+                v_lot_data(i).loan_id,
+                v_lot_data(i).act_seq_no,
+                v_lot_data(i).tran_suff,
+                v_lot_data(i).al_op_acct,
+                v_lot_data(i).amount,
+                v_lot_data(i).lot_seq_no
+            );
+
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Activity → Lot for area_id ' || P_IN_AREA_ID || ': ' || SQL%ROWCOUNT || ' rows processed.');
+    EXCEPTION
+        WHEN OTHERS THEN
+            P_OUT_STS := 1;  -- Error
+            DBMS_OUTPUT.PUT_LINE('Error in Lot processing: ' || SQLERRM);
+            RAISE;
+    END;
+
+    --------------------------------------
+    -- STEP 6: Process Fund Records (Aggregates from Activity)
+    --------------------------------------
+    DECLARE
+        TYPE fund_rec IS RECORD (
+            loan_id      ial_slb.loan_activity.loan_id%TYPE,
+            al_op_acct  ial_slb.loan_activity.al_op_acct%TYPE,
+            act_seq_no  ial_slb.loan_activity.act_seq_no%TYPE,
+            total_amount NUMBER
+        );
+        TYPE fund_table IS TABLE OF fund_rec;
+        v_fund_data fund_table;
+
+        -- Function to generate act_seq_no for Fund records
+        FUNCTION generate_act_seq_no(p_loan_id VARCHAR2, p_al_op_acct VARCHAR2) RETURN VARCHAR2 IS
+        BEGIN
+            RETURN p_loan_id || TO_CHAR(gv_systimestamp, 'YYYYMMDDHH24MISSFF') || p_al_op_acct;
+        END generate_act_seq_no;
+
+    BEGIN
+        -- Aggregate data from Activity for Fund records
+        SELECT 
+            a.loan_id, 
+            a.al_op_acct, 
+            generate_act_seq_no(a.loan_id, a.al_op_acct) AS act_seq_no,
+            SUM(a.amount) AS total_amount
+        BULK COLLECT INTO v_fund_data
+        FROM ial_slb.loan_activity a
+        WHERE substr(a.dml_transaction_ref, 1, 2) = P_IN_AREA_ID
+          AND tran_suff IS NULL
+          AND al_op_acct IS NOT NULL
+          AND loan_id = v_loan_id  -- Use the same loan_id
+        GROUP BY a.loan_id, a.al_op_acct;
+
+        -- Insert into Fund
+        FORALL i IN 1 .. v_fund_data.COUNT
+            INSERT INTO ial_slb.loan_fund (
+                loan_id, act_seq_no, al_op_acct, total_amount
+            )
+            VALUES (
+                v_fund_data(i).loan_id,
+                v_fund_data(i).act_seq_no,
+                v_fund_data(i).al_op_acct,
+                v_fund_data(i).total_amount
+            );
+
+        -- Record Fund records in Activity table
+        FORALL i IN 1 .. v_fund_data.COUNT
+            INSERT INTO ial_slb.loan_activity (
+                dml_transaction_ref, tran_suff, al_op_acct, amount, act_seq_no, loan_id
+            )
+            VALUES (
+                P_IN_AREA_ID || '-FUND-' || v_fund_data(i).al_op_acct,  -- Example: '01-FUND-ACCT_1'
+                NULL,  -- tran_suff is NULL for Fund records
+                v_fund_data(i).al_op_acct,
+                v_fund_data(i).total_amount,
+                v_fund_data(i).act_seq_no,
+                v_fund_data(i).loan_id
+            );
+
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Activity → Fund for area_id ' || P_IN_AREA_ID || ': ' || SQL%ROWCOUNT || ' rows processed.');
+    EXCEPTION
+        WHEN OTHERS THEN
+            P_OUT_STS := 1;  -- Error
+            DBMS_OUTPUT.PUT_LINE('Error in Fund processing: ' || SQLERRM);
+            RAISE;
+    END;
+
+    -- Set output status to success
+    P_OUT_STS := 0;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        P_OUT_STS := 1;  -- Error
+        DBMS_OUTPUT.PUT_LINE('Error in PR_LOAD_STG_TO_LOAN_TABS: ' || SQLERRM);
+        ROLLBACK;
+END PR_LOAD_STG_TO_LOAN_TABS;
+/
