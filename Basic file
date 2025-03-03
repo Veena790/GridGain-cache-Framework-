@@ -1,0 +1,60 @@
+MERGE INTO loan_activity a
+USING (
+    SELECT 
+        st.tran_num,
+        (SELECT DISTINCT omni.loan_id 
+         FROM loan_activity omni 
+         WHERE omni.tran_suff IS NULL 
+           AND SUBSTR(omni.DML_TRANSACTION_REF, 3, 6) = st.tran_num) AS new_loan_id,
+        CASE 
+            WHEN st.tran_suff IS NOT NULL 
+            THEN 
+                (SELECT DISTINCT omni.loan_id 
+                 FROM loan_activity omni 
+                 WHERE omni.tran_suff IS NULL 
+                   AND SUBSTR(omni.DML_TRANSACTION_REF, 3, 6) = st.tran_num) 
+                || '_' || TO_CHAR(SYSTIMESTAMP, 'YYYYMMDDHH24MI')
+                || CASE WHEN a.lot_seq_no IS NOT NULL THEN '-' || a.AL_OP_ACCT END 
+                || CASE WHEN a.lot_seq_no IS NOT NULL THEN '-' || a.lot_seq_no END 
+            ELSE NULL 
+        END AS new_act_seq_no
+    FROM STG_LOAN_V2_SOD st
+    JOIN loan_activity a ON st.tran_num = SUBSTR(a.DML_TRANSACTION_REF, 3, 6)
+    WHERE a.loan_id IS NULL 
+      AND st.tran_suff IS NOT NULL
+) src
+ON (a.DML_TRANSACTION_REF = src.tran_num)
+WHEN MATCHED THEN
+    UPDATE SET 
+        a.loan_id = src.new_loan_id,
+        a.act_seq_no = src.new_act_seq_no;
+
+
+
+
+SELECT 
+    a.DML_TRANSACTION_REF, 
+    a.loan_id AS current_loan_id,
+    st.tran_num,
+    st.tran_suff,
+    st.area_id,
+    (SELECT DISTINCT omni.loan_id 
+     FROM loan_activity omni 
+     WHERE omni.tran_suff IS NULL 
+       AND SUBSTR(omni.DML_TRANSACTION_REF, 3, 6) = st.tran_num) AS new_loan_id,
+    CASE 
+        WHEN st.tran_suff IS NOT NULL 
+        THEN 
+            (SELECT DISTINCT omni.loan_id 
+             FROM loan_activity omni 
+             WHERE omni.tran_suff IS NULL 
+               AND SUBSTR(omni.DML_TRANSACTION_REF, 3, 6) = st.tran_num) 
+            || '_' || TO_CHAR(SYSTIMESTAMP, 'YYYYMMDDHH24MI')
+            || CASE WHEN a.lot_seq_no IS NOT NULL THEN '-' || a.AL_OP_ACCT END 
+            || CASE WHEN a.lot_seq_no IS NOT NULL THEN '-' || a.lot_seq_no END 
+        ELSE NULL 
+    END AS new_act_seq_no
+FROM STG_LOAN_V2_SOD st
+JOIN loan_activity a ON st.tran_num = SUBSTR(a.DML_TRANSACTION_REF, 3, 6)
+WHERE a.loan_id IS NULL 
+  AND st.tran_suff IS NOT NULL;
